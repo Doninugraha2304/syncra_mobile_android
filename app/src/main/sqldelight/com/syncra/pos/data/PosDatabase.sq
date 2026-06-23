@@ -36,6 +36,9 @@ DELETE FROM RawMaterialEntity WHERE id = ?;
 updateRawMaterialStock:
 UPDATE RawMaterialEntity SET stockQuantity = ? WHERE id = ?;
 
+updateRawMaterial:
+UPDATE RawMaterialEntity SET name = ?, stockQuantity = ?, unit = ?, costPerUnit = ? WHERE id = ?;
+
 -- Queries for Products
 getAllProducts:
 SELECT * FROM ProductEntity;
@@ -43,6 +46,9 @@ SELECT * FROM ProductEntity;
 insertProduct:
 INSERT INTO ProductEntity(name, price, barcode)
 VALUES (?, ?, ?);
+
+updateProduct:
+UPDATE ProductEntity SET name = ?, price = ?, barcode = ? WHERE id = ?;
 
 deleteProduct:
 DELETE FROM ProductEntity WHERE id = ?;
@@ -63,3 +69,33 @@ VALUES (?, ?, ?);
 
 deleteRecipeIngredient:
 DELETE FROM ProductRecipeEntity WHERE id = ?;
+
+CREATE TABLE TransactionEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp INTEGER NOT NULL,
+    totalAmount REAL NOT NULL
+);
+
+CREATE TABLE TransactionItemEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transactionId INTEGER NOT NULL,
+    productId INTEGER NOT NULL,
+    productName TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    price REAL NOT NULL,
+    FOREIGN KEY (transactionId) REFERENCES TransactionEntity(id) ON DELETE CASCADE
+);
+
+getAllTransactions:
+SELECT * FROM TransactionEntity ORDER BY timestamp DESC;
+
+insertTransaction:
+INSERT INTO TransactionEntity(timestamp, totalAmount)
+VALUES (?, ?);
+
+getItemsForTransaction:
+SELECT * FROM TransactionItemEntity WHERE transactionId = ?;
+
+insertTransactionItem:
+INSERT INTO TransactionItemEntity(transactionId, productId, productName, quantity, price)
+VALUES (?, ?, ?, ?, ?);

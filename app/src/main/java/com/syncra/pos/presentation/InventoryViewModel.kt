@@ -38,6 +38,12 @@ class InventoryViewModel(
         }
     }
 
+    fun updateRawMaterial(id: Long, name: String, stockQuantity: Double, unit: String, costPerUnit: Double) {
+        viewModelScope.launch {
+            repository.updateRawMaterial(id, name, stockQuantity, unit, costPerUnit)
+        }
+    }
+
     fun deleteRawMaterial(id: Long) {
         viewModelScope.launch {
             repository.deleteRawMaterial(id)
@@ -47,6 +53,12 @@ class InventoryViewModel(
     fun addProductWithRecipe(name: String, price: Double, barcode: String?, recipe: List<Pair<Long, Double>>) {
         viewModelScope.launch {
             repository.createProductWithRecipe(name, price, barcode, recipe)
+        }
+    }
+
+    fun updateProduct(id: Long, name: String, price: Double, barcode: String?) {
+        viewModelScope.launch {
+            repository.updateProduct(id, name, price, barcode)
         }
     }
 
@@ -70,9 +82,33 @@ class InventoryViewModel(
 
     fun checkout() {
         viewModelScope.launch {
+            if (_cart.value.isEmpty()) return@launch
+            
+            val timestamp = System.currentTimeMillis()
+            var totalAmount = 0.0
+            val transactionItems = mutableListOf<com.syncra.pos.domain.TransactionItem>()
+            
             _cart.value.forEach { (product, quantity) ->
                 repository.sellProduct(product.id, quantity)
+                totalAmount += product.price * quantity
+                
+                transactionItems.add(
+                    com.syncra.pos.domain.TransactionItem(
+                        productId = product.id,
+                        productName = product.name,
+                        quantity = quantity,
+                        price = product.price
+                    )
+                )
             }
+            
+            val transaction = com.syncra.pos.domain.Transaction(
+                timestamp = timestamp,
+                totalAmount = totalAmount,
+                items = transactionItems
+            )
+            repository.insertTransaction(transaction)
+            
             _cart.value = emptyMap() // Clear cart after checkout
         }
     }

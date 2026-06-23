@@ -35,3 +35,17 @@ data class Product(
     // Max stock available is determined by the most scarce raw material
     val availableStock: Int get() = if (recipe.isEmpty()) 0 else recipe.minOf { it.possibleStock }
 }
+
+data class TransactionItem(
+    val productId: Long,
+    val productName: String,
+    val quantity: Int,
+    val price: Double
+)
+
+data class Transaction(
+    val id: Long = 0,
+    val timestamp: Long,
+    val totalAmount: Double,
+    val items: List<TransactionItem> = emptyList()
+)

@@ -41,6 +41,12 @@ class ProductRepositoryImpl(
         }
     }
 
+    override suspend fun updateRawMaterial(id: Long, name: String, stockQuantity: Double, unit: String, costPerUnit: Double) {
+        withContext(Dispatchers.IO) {
+            queries.updateRawMaterial(name, stockQuantity, unit, costPerUnit, id)
+        }
+    }
+
     override suspend fun deleteRawMaterial(id: Long) {
         withContext(Dispatchers.IO) {
             queries.deleteRawMaterial(id)
@@ -99,6 +105,12 @@ class ProductRepositoryImpl(
         }
     }
 
+    override suspend fun updateProduct(id: Long, name: String, price: Double, barcode: String?) {
+        withContext(Dispatchers.IO) {
+            queries.updateProduct(name, price, barcode, id)
+        }
+    }
+
     override suspend fun deleteProduct(id: Long) {
         withContext(Dispatchers.IO) {
             queries.deleteProduct(id)
@@ -114,6 +126,46 @@ class ProductRepositoryImpl(
                     val newStock = ingredient.stockQuantity - totalDeduction
                     queries.updateRawMaterialStock(newStock, ingredient.rawMaterialId)
                 }
+            }
+        }
+    }
+    
+    override suspend fun insertTransaction(transaction: com.syncra.pos.domain.Transaction) {
+        withContext(Dispatchers.IO) {
+            database.transaction {
+                queries.insertTransaction(transaction.timestamp, transaction.totalAmount)
+                val txId = queries.lastInsertRowId().executeAsOne()
+                
+                transaction.items.forEach { item ->
+                    queries.insertTransactionItem(
+                        transactionId = txId,
+                        productId = item.productId,
+                        productName = item.productName,
+                        quantity = item.quantity.toLong(),
+                        price = item.price
+                    )
+                }
+            }
+        }
+    }
+
+    override fun getAllTransactions(): Flow<List<com.syncra.pos.domain.Transaction>> {
+        return queries.getAllTransactions().asFlow().mapToList(Dispatchers.IO).map { txEntities ->
+            txEntities.map { tx ->
+                val items = queries.getItemsForTransaction(tx.id).executeAsList().map { item ->
+                    com.syncra.pos.domain.TransactionItem(
+                        productId = item.productId,
+                        productName = item.productName,
+                        quantity = item.quantity.toInt(),
+                        price = item.price
+                    )
+                }
+                com.syncra.pos.domain.Transaction(
+                    id = tx.id,
+                    timestamp = tx.timestamp,
+                    totalAmount = tx.totalAmount,
+                    items = items
+                )
             }
         }
     }

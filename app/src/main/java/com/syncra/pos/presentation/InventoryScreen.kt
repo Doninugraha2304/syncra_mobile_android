@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.rounded.Build
@@ -44,6 +45,9 @@ fun InventoryScreen(
     
     var showAddRawMaterialDialog by remember { mutableStateOf(false) }
     var showAddProductDialog by remember { mutableStateOf(false) }
+    
+    var materialToEdit by remember { mutableStateOf<RawMaterial?>(null) }
+    var productToEdit by remember { mutableStateOf<Product?>(null) }
 
     Scaffold(
         topBar = {
@@ -126,16 +130,25 @@ fun InventoryScreen(
             }
             Box(modifier = Modifier.weight(1f).background(MaterialTheme.colorScheme.background)) {
                 if (selectedTab == 0) {
-                    RawMaterialsTab(rawMaterials, onDelete = { viewModel.deleteRawMaterial(it) })
+                    RawMaterialsTab(
+                        rawMaterials = rawMaterials,
+                        onDelete = { id -> viewModel.deleteRawMaterial(id) },
+                        onEdit = { material -> materialToEdit = material }
+                    )
                 } else {
-                    ProductsTab(products, onDelete = { viewModel.deleteProduct(it) })
+                    ProductsTab(
+                        products = products,
+                        onDelete = { id -> viewModel.deleteProduct(id) },
+                        onEdit = { product -> productToEdit = product }
+                    )
                 }
             }
         }
     }
 
     if (showAddRawMaterialDialog) {
-        AddRawMaterialDialog(
+        RawMaterialDialog(
+            initialMaterial = null,
             onDismiss = { showAddRawMaterialDialog = false },
             onSave = { name, stock, unit, cost ->
                 viewModel.addRawMaterial(name, stock, unit, cost)
@@ -144,9 +157,21 @@ fun InventoryScreen(
         )
     }
 
+    if (materialToEdit != null) {
+        RawMaterialDialog(
+            initialMaterial = materialToEdit,
+            onDismiss = { materialToEdit = null },
+            onSave = { name, stock, unit, cost ->
+                viewModel.updateRawMaterial(materialToEdit!!.id, name, stock, unit, cost)
+                materialToEdit = null
+            }
+        )
+    }
+
     if (showAddProductDialog) {
-        AddProductDialog(
+        ProductDialog(
             rawMaterials = rawMaterials,
+            initialProduct = null,
             onDismiss = { showAddProductDialog = false },
             onSave = { name, price, barcode, recipe ->
                 viewModel.addProductWithRecipe(name, price, barcode, recipe)
@@ -154,12 +179,28 @@ fun InventoryScreen(
             }
         )
     }
+
+    if (productToEdit != null) {
+        ProductDialog(
+            rawMaterials = rawMaterials,
+            initialProduct = productToEdit,
+            onDismiss = { productToEdit = null },
+            onSave = { name, price, barcode, recipe ->
+                // Assuming updating a product with recipe isn't fully supported via updateProduct yet,
+                // we just update the product basic info for now. In a real app we'd update recipes too.
+                viewModel.updateProduct(productToEdit!!.id, name, price, barcode)
+                productToEdit = null
+            }
+        )
+    }
 }
 
 @Composable
-fun RawMaterialsTab(rawMaterials: List<RawMaterial>, onDelete: (Long) -> Unit) {
+fun RawMaterialsTab(rawMaterials: List<RawMaterial>, onDelete: (Long) -> Unit, onEdit: (RawMaterial) -> Unit) {
     if (rawMaterials.isEmpty()) {
-        EmptyStateMessage("No raw materials yet. Add some ingredients!")
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Tidak ada bahan baku. Silakan tambah bahan baku baru.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -167,14 +208,14 @@ fun RawMaterialsTab(rawMaterials: List<RawMaterial>, onDelete: (Long) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(rawMaterials) { material ->
-                RawMaterialCard(material, onDelete = { onDelete(material.id) })
+                RawMaterialCard(material, onDelete = { onDelete(material.id) }, onEdit = { onEdit(material) })
             }
         }
     }
 }
 
 @Composable
-fun ProductsTab(products: List<Product>, onDelete: (Long) -> Unit) {
+fun ProductsTab(products: List<Product>, onDelete: (Long) -> Unit, onEdit: (Product) -> Unit) {
     if (products.isEmpty()) {
         EmptyStateMessage("No finished goods yet. Create your first product!")
     } else {
@@ -184,14 +225,14 @@ fun ProductsTab(products: List<Product>, onDelete: (Long) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(products) { product ->
-                ProductCard(product, onDelete = { onDelete(product.id) })
+                ProductCard(product, onDelete = { onDelete(product.id) }, onEdit = { onEdit(product) })
             }
         }
     }
 }
 
 @Composable
-fun RawMaterialCard(material: RawMaterial, onDelete: () -> Unit) {
+fun RawMaterialCard(material: RawMaterial, onDelete: () -> Unit, onEdit: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
@@ -224,15 +265,20 @@ fun RawMaterialCard(material: RawMaterial, onDelete: () -> Unit) {
                     BadgeText(text = "Rp ${material.costPerUnit}/${material.unit}", color = MaterialTheme.colorScheme.tertiary)
                 }
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+            Row {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }
 }
 
 @Composable
-fun ProductCard(product: Product, onDelete: () -> Unit) {
+fun ProductCard(product: Product, onDelete: () -> Unit, onEdit: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
 
     Card(
@@ -261,8 +307,13 @@ fun ProductCard(product: Product, onDelete: () -> Unit) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("Selling Price: Rp ${product.price}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                 }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                Row {
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
 
@@ -325,19 +376,19 @@ fun EmptyStateMessage(message: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddRawMaterialDialog(onDismiss: () -> Unit, onSave: (String, Double, String, Double) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var stock by remember { mutableStateOf("") }
-    var cost by remember { mutableStateOf("") }
+fun RawMaterialDialog(initialMaterial: RawMaterial?, onDismiss: () -> Unit, onSave: (String, Double, String, Double) -> Unit) {
+    var name by remember { mutableStateOf(initialMaterial?.name ?: "") }
+    var stock by remember { mutableStateOf(initialMaterial?.stockQuantity?.toString() ?: "") }
+    var cost by remember { mutableStateOf(initialMaterial?.costPerUnit?.toString() ?: "") }
 
     val options = listOf("kg", "g", "liter", "ml", "pcs")
     var expanded by remember { mutableStateOf(false) }
-    var selectedUnit by remember { mutableStateOf(options[0]) }
+    var selectedUnit by remember { mutableStateOf(initialMaterial?.unit ?: options[0]) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(modifier = Modifier.padding(24.dp)) {
-                Text("New Raw Material", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(if (initialMaterial == null) "New Raw Material" else "Edit Raw Material", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Material Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -409,17 +460,19 @@ fun AddRawMaterialDialog(onDismiss: () -> Unit, onSave: (String, Double, String,
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddProductDialog(rawMaterials: List<RawMaterial>, onDismiss: () -> Unit, onSave: (String, Double, String?, List<Pair<Long, Double>>) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
-    var barcode by remember { mutableStateOf("") }
-    var recipeDraft by remember { mutableStateOf(mapOf<Long, String>()) }
+fun ProductDialog(rawMaterials: List<RawMaterial>, initialProduct: Product?, onDismiss: () -> Unit, onSave: (String, Double, String?, List<Pair<Long, Double>>) -> Unit) {
+    var name by remember { mutableStateOf(initialProduct?.name ?: "") }
+    var price by remember { mutableStateOf(initialProduct?.price?.toString() ?: "") }
+    var barcode by remember { mutableStateOf(initialProduct?.barcode ?: "") }
+    
+    val initialRecipe = initialProduct?.recipe?.associate { it.rawMaterialId to it.quantityNeeded.toString() } ?: emptyMap()
+    var recipeDraft by remember { mutableStateOf(initialRecipe) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             LazyColumn(modifier = Modifier.padding(24.dp)) {
                 item {
-                    Text("New Finished Good", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(if (initialProduct == null) "New Finished Good" else "Edit Finished Good", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Product Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(8.dp))

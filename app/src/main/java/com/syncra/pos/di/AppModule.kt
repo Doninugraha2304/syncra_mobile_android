@@ -26,4 +26,5 @@ val appModule = module {
     single<ProductRepository> { ProductRepositoryImpl(get()) }
     viewModel { InventoryViewModel(get()) }
     viewModel { com.syncra.pos.presentation.SettingsViewModel(androidContext()) }
+    viewModel { com.syncra.pos.presentation.HistoryViewModel(get()) }
 }

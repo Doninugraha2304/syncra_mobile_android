@@ -87,7 +87,7 @@ fun MainScreen(isDarkTheme: Boolean = true, onThemeToggle: () -> Unit = {}) {
             when (selectedTab) {
                 0 -> PosScreen(isDarkTheme = isDarkTheme, onThemeToggle = onThemeToggle)
                 1 -> InventoryScreen()
-                2 -> EmptyStateMessage("Riwayat Transaksi akan segera hadir!")
+                2 -> HistoryScreen()
                 3 -> SettingsScreen()
             }
         }
