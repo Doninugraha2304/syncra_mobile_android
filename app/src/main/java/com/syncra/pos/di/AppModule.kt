@@ -1,16 +1,17 @@
 package com.syncra.pos.di
 
+import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.syncra.pos.data.PosDatabase
 import com.syncra.pos.data.ProductRepositoryImpl
 import com.syncra.pos.domain.ProductRepository
-import com.syncra.pos.presentation.PosViewModel
+import com.syncra.pos.presentation.InventoryViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
-    single {
+    single<SqlDriver> {
         AndroidSqliteDriver(
             schema = PosDatabase.Schema,
             context = androidContext(),
@@ -27,6 +28,6 @@ val appModule = module {
     }
 
     viewModel {
-        PosViewModel(repository = get())
+        InventoryViewModel(repository = get())
     }
 }

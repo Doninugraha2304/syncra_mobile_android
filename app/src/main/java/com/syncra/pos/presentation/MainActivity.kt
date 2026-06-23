@@ -13,101 +13,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.syncra.pos.presentation.theme.SyncraPosTheme
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
-class MainActivity : ComponentActivity() {
-    private val viewModel: PosViewModel by viewModel()
+import androidx.compose.foundation.isSystemInDarkTheme
 
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            var isDarkTheme by remember { mutableStateOf(true) } // Default to dark theme for POS
+
+            SyncraPosTheme(darkTheme = isDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    PosScreen(viewModel = viewModel)
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PosScreen(viewModel: PosViewModel) {
-    val products by viewModel.products.collectAsState()
-    var name by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Syncra POS") })
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Product Name") },
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = price,
-                    onValueChange = { price = it },
-                    label = { Text("Price") },
-                    modifier = Modifier.weight(1f)
-                )
-                Button(
-                    onClick = {
-                        val priceDouble = price.toDoubleOrNull()
-                        if (name.isNotBlank() && priceDouble != null) {
-                            viewModel.addProduct(name, priceDouble)
-                            name = ""
-                            price = ""
-                        }
-                    }
-                ) {
-                    Text("Add")
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(products) { product ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(text = product.name, style = MaterialTheme.typography.titleMedium)
-                                Text(text = "$${product.price}", style = MaterialTheme.typography.bodyMedium)
-                            }
-                            IconButton(onClick = { viewModel.deleteProduct(product.id) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete")
-                            }
-                        }
-                    }
+                    MainScreen(isDarkTheme = isDarkTheme, onThemeToggle = { isDarkTheme = !isDarkTheme })
                 }
             }
         }

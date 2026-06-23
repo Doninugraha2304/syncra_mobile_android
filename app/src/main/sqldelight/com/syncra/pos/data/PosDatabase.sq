@@ -1,3 +1,11 @@
+CREATE TABLE RawMaterialEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    stockQuantity REAL NOT NULL,
+    unit TEXT NOT NULL,
+    costPerUnit REAL NOT NULL
+);
+
 CREATE TABLE ProductEntity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -5,6 +13,30 @@ CREATE TABLE ProductEntity (
     barcode TEXT
 );
 
+CREATE TABLE ProductRecipeEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    productId INTEGER NOT NULL,
+    rawMaterialId INTEGER NOT NULL,
+    quantityNeeded REAL NOT NULL,
+    FOREIGN KEY (productId) REFERENCES ProductEntity(id) ON DELETE CASCADE,
+    FOREIGN KEY (rawMaterialId) REFERENCES RawMaterialEntity(id) ON DELETE CASCADE
+);
+
+-- Queries for Raw Materials
+getAllRawMaterials:
+SELECT * FROM RawMaterialEntity;
+
+insertRawMaterial:
+INSERT INTO RawMaterialEntity(name, stockQuantity, unit, costPerUnit)
+VALUES (?, ?, ?, ?);
+
+deleteRawMaterial:
+DELETE FROM RawMaterialEntity WHERE id = ?;
+
+updateRawMaterialStock:
+UPDATE RawMaterialEntity SET stockQuantity = ? WHERE id = ?;
+
+-- Queries for Products
 getAllProducts:
 SELECT * FROM ProductEntity;
 
@@ -14,3 +46,20 @@ VALUES (?, ?, ?);
 
 deleteProduct:
 DELETE FROM ProductEntity WHERE id = ?;
+
+lastInsertRowId:
+SELECT last_insert_rowid();
+
+-- Queries for Recipes
+getRecipeForProduct:
+SELECT r.id, r.productId, r.rawMaterialId, r.quantityNeeded, m.name AS rawMaterialName, m.unit, m.costPerUnit, m.stockQuantity
+FROM ProductRecipeEntity r
+INNER JOIN RawMaterialEntity m ON r.rawMaterialId = m.id
+WHERE r.productId = ?;
+
+insertRecipeIngredient:
+INSERT INTO ProductRecipeEntity(productId, rawMaterialId, quantityNeeded)
+VALUES (?, ?, ?);
+
+deleteRecipeIngredient:
+DELETE FROM ProductRecipeEntity WHERE id = ?;
