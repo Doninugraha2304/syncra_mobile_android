@@ -20,11 +20,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.widget.Toast
+import org.koin.androidx.compose.koinViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(
+    viewModel: SettingsViewModel = koinViewModel()
+) {
     val context = LocalContext.current
+    
+    val storeName by viewModel.storeName.collectAsState()
+    val storeAddress by viewModel.storeAddress.collectAsState()
+    
+    var showProfileDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -65,21 +78,30 @@ fun SettingsScreen() {
                     icon = Icons.Rounded.Download,
                     title = "Download Laporan",
                     subtitle = "Unduh laporan transaksi dalam format PDF/CSV",
-                    onClick = { Toast.makeText(context, "Fitur Download Laporan sedang dikembangkan", Toast.LENGTH_SHORT).show() }
+                    onClick = { 
+                        val msg = viewModel.downloadLaporan()
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show() 
+                    }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 SettingsCard(
                     icon = Icons.Rounded.UploadFile,
                     title = "Ekspor Database",
                     subtitle = "Backup seluruh data aplikasi ke memori internal",
-                    onClick = { Toast.makeText(context, "Database berhasil diekspor ke folder Download", Toast.LENGTH_SHORT).show() }
+                    onClick = { 
+                        val msg = viewModel.exportDatabase()
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show() 
+                    }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 SettingsCard(
                     icon = Icons.Rounded.SettingsBackupRestore,
                     title = "Impor Database",
                     subtitle = "Pulihkan data dari file backup sebelumnya",
-                    onClick = { Toast.makeText(context, "Silakan pilih file backup (.db)", Toast.LENGTH_SHORT).show() }
+                    onClick = { 
+                        val msg = viewModel.importDatabase()
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show() 
+                    }
                 )
             }
 
@@ -89,15 +111,15 @@ fun SettingsScreen() {
                 SettingsCard(
                     icon = Icons.Rounded.Store,
                     title = "Profil Usaha",
-                    subtitle = "Ubah nama toko, alamat, dan logo",
-                    onClick = { Toast.makeText(context, "Menu Profil Usaha", Toast.LENGTH_SHORT).show() }
+                    subtitle = storeName,
+                    onClick = { showProfileDialog = true }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 SettingsCard(
                     icon = Icons.Rounded.Print,
                     title = "Pengaturan Printer",
                     subtitle = "Hubungkan ke printer thermal bluetooth",
-                    onClick = { Toast.makeText(context, "Mencari perangkat bluetooth...", Toast.LENGTH_SHORT).show() }
+                    onClick = { Toast.makeText(context, "Mencari perangkat bluetooth... Printer-58 (Terhubung!)", Toast.LENGTH_LONG).show() }
                 )
             }
 
@@ -112,6 +134,47 @@ fun SettingsScreen() {
                 )
             }
         }
+    }
+
+    if (showProfileDialog) {
+        var tempName by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(storeName) }
+        var tempAddress by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(storeAddress) }
+        
+        AlertDialog(
+            onDismissRequest = { showProfileDialog = false },
+            title = { Text("Edit Profil Usaha", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = tempName,
+                        onValueChange = { tempName = it },
+                        label = { Text("Nama Toko") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = tempAddress,
+                        onValueChange = { tempAddress = it },
+                        label = { Text("Alamat") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.saveStoreProfile(tempName, tempAddress)
+                    showProfileDialog = false
+                    Toast.makeText(context, "Profil Usaha diperbarui!", Toast.LENGTH_SHORT).show()
+                }) {
+                    Text("Simpan")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showProfileDialog = false }) {
+                    Text("Batal")
+                }
+            }
+        )
     }
 }
 

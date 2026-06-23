@@ -23,11 +23,7 @@ val appModule = module {
         PosDatabase(driver = get())
     }
 
-    single<ProductRepository> {
-        ProductRepositoryImpl(database = get())
-    }
-
-    viewModel {
-        InventoryViewModel(repository = get())
-    }
+    single<ProductRepository> { ProductRepositoryImpl(get()) }
+    viewModel { InventoryViewModel(get()) }
+    viewModel { com.syncra.pos.presentation.SettingsViewModel(androidContext()) }
 }

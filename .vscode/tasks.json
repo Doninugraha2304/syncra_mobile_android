@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Debug",
+      "type": "shell",
+      "command": "./gradlew",
+      "args": ["assembleDebug"],
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Build project in debug mode"
+    },
+    {
+      "label": "Install & Run",
+      "type": "shell",
+      "command": "./gradlew",
+      "args": ["installDebug"],
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Build and install app on connected device"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.compile.nullAnalysis.mode": "disabled",
+  "gradle.navigateToGradleFile.enabled": true,
+  "kotlin.languageServer.enabled": true,
+  "files.exclude": {
+    "**/.gradle": true,
+    "**/build": true
+  }
+}
